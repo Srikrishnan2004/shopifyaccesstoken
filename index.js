@@ -435,12 +435,12 @@ app.get('/auth/callback', async (req, res) => {
         <div class="token-info">
             <p><strong>Access Token:</strong> ${accessToken.substring(0, 5)}...${accessToken.substring(accessToken.length - 5)} (partially hidden for security)</p>
         </div>
-        <a href="http://localhost:5173?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}" class="button">Continue to App</a>
+        <a href="https://dashboard.strategyfox.in?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}" class="button">Continue to App</a>
     </div>
     <script>
         // Automatically redirect after 5 seconds
         setTimeout(() => {
-            window.location.href = "http://localhost:5173?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}";
+            window.location.href = "https://dashboard.strategyfox.in?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}";
         }, 5000);
     </script>
 </body>
