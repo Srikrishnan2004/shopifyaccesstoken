@@ -35,8 +35,6 @@ app.get('/auth', (req, res) => {
         `&state=${state}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
-    console.log('redirecting to', installUrl);
-
     // Create an HTML page that first redirects to login, then to the OAuth page
     const redirectHtml = `
     <!DOCTYPE html>
@@ -240,8 +238,6 @@ app.get('/auth/callback', async (req, res) => {
         });
         const accessToken = tokenResponse.data.access_token;
         // ← Store accessToken in your DB tied to `shop`
-
-        console.log('accessToken', accessToken);
 
         // Display success HTML page instead of redirecting
         const successHtml = `
