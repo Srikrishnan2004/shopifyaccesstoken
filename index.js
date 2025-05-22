@@ -467,12 +467,12 @@ app.get('/auth/callback', async (req, res) => {
             <p><strong>API Response:</strong></p>
             <pre style="max-height: 200px; overflow: auto; margin-top: 10px; color: #e0e0e0; font-size: 0.9em;">${JSON.stringify(apiResponse, null, 2)}</pre>
         </div>
-        <a href="http://localhost:5173?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}" class="button">Continue to App</a>
+        <a href="https://dashboard.strategyfox.in?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}" class="button">Continue to App</a>
     </div>
     <script>
         // Automatically redirect after 5 seconds
         setTimeout(() => {
-            window.location.href = "http://localhost:5173?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}";
+            window.location.href = "https://dashboard.strategyfox.in?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}";
         }, 5000);
     </script>
 </body>
