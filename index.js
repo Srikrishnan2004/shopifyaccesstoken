@@ -5,8 +5,8 @@ import crypto from 'crypto';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import cors from 'cors';
-dotenv.config();
 
+dotenv.config();
 
 const { SHOPIFY_API_KEY, SHOPIFY_API_SECRET, SHOPIFY_SCOPES, HOST } = process.env;
 const app = express();
@@ -17,7 +17,7 @@ app.use(cookieParser());
 app.get('/auth', (req, res) => {
     console.log("Entering into the auth route.");
 
-    const { shop } = req.query;
+    const { shop, email } = req.query;
     if (!shop) return res.status(400).send('Missing shop parameter');
 
     // generate a nonce for CSRF protection
@@ -35,6 +35,10 @@ app.get('/auth', (req, res) => {
         `&state=${state}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
+    // Store email in a cookie instead of trying to pass it in the redirect URI
+    if (email) {
+        res.cookie('shopify_email', email, { httpOnly: true, secure: true, sameSite: 'lax' });
+    }
     // Create an HTML page that first redirects to login, then to the OAuth page
     const redirectHtml = `
     <!DOCTYPE html>
@@ -71,7 +75,6 @@ app.get('/auth', (req, res) => {
             margin: 0 auto;
             border: 1px solid rgba(255, 255, 255, 0.1);
             color: #ffffff;
-            position: relative;
         }
 
         h1 {
@@ -214,6 +217,9 @@ app.get('/auth/callback', async (req, res) => {
     console.log("Entering into the auth/callback route.");
 
     const { shop, hmac, code, state } = req.query;
+    const email = req.cookies.shopify_email;
+    console.log("Email from cookie:", email);
+
     const stateCookie = req.cookies.state;
     if (state !== stateCookie) return res.status(403).send('Invalid state');
 
@@ -237,9 +243,34 @@ app.get('/auth/callback', async (req, res) => {
             code
         });
         const accessToken = tokenResponse.data.access_token;
-        // ← Store accessToken in your DB tied to `shop`
 
-        // Display success HTML page instead of redirecting
+        // Create form data and call the API to save the access token
+        let apiResponse = {};
+        try {
+            const formData = new FormData();
+            formData.append('shopifyAccessToken', accessToken);
+            if (email) {
+                formData.append('email', email);
+            }
+
+            const saveTokenResponse = await axios.post(
+                'https://save-shopify-acces-token-201137466588.asia-south1.run.app',
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                }
+            );
+
+            apiResponse = saveTokenResponse.data;
+            console.log('API Response:', apiResponse);
+        } catch (apiError) {
+            console.error('API call error:', apiError);
+            apiResponse = { error: 'Failed to save access token' };
+        }
+
+        // Display success HTML page with API response
         const successHtml = `
         <!DOCTYPE html>
 <html>
@@ -434,13 +465,18 @@ app.get('/auth/callback', async (req, res) => {
         <p>The access token has been saved successfully.</p>
         <div class="token-info">
             <p><strong>Access Token:</strong> ${accessToken.substring(0, 5)}...${accessToken.substring(accessToken.length - 5)} (partially hidden for security)</p>
+            ${email ? `<p><strong>Email:</strong> ${email}</p>` : ''}
         </div>
-        <a href="https://dashboard.strategyfox.in?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}" class="button">Continue to App</a>
+        <div class="token-info">
+            <p><strong>API Response:</strong></p>
+            <pre style="max-height: 200px; overflow: auto; margin-top: 10px; color: #e0e0e0; font-size: 0.9em;">${JSON.stringify(apiResponse, null, 2)}</pre>
+        </div>
+        <a href="https://localhost:5173?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}" class="button">Continue to App</a>
     </div>
     <script>
         // Automatically redirect after 5 seconds
         setTimeout(() => {
-            window.location.href = "https://dashboard.strategyfox.in?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}";
+            window.location.href = "https://localhost:5173?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}";
         }, 5000);
     </script>
 </body>
