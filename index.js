@@ -464,10 +464,6 @@ app.get('/auth/callback', async (req, res) => {
         <p>Your Shopify store <strong>${shop}</strong> has been successfully connected.</p>
         <p>The access token has been saved successfully.</p>
         <div class="token-info">
-            <p><strong>Access Token:</strong> ${accessToken.substring(0, 5)}...${accessToken.substring(accessToken.length - 5)} (partially hidden for security)</p>
-            ${email ? `<p><strong>Email:</strong> ${email}</p>` : ''}
-        </div>
-        <div class="token-info">
             <p><strong>API Response:</strong></p>
             <pre style="max-height: 200px; overflow: auto; margin-top: 10px; color: #e0e0e0; font-size: 0.9em;">${JSON.stringify(apiResponse, null, 2)}</pre>
         </div>
