@@ -186,23 +186,31 @@ app.get('/auth', (req, res) => {
         <p>You'll be redirected to Shopify to authorize this application.</p>
     </div>
     <script>
-        // First ensure the user is logged in by redirecting to admin
-        setTimeout(() => {
-            // Open admin in a new tab/window to ensure login
-            const loginWindow = window.open('${loginUrl}', '_blank');
-            
-            // After a short delay, redirect to the OAuth page
-            setTimeout(() => {
-                window.location.href = '${installUrl}';
-                // Try to close the login window if possible
-                if (loginWindow) {
+        // Open admin in a new tab/window to ensure login
+        const loginWindow = window.open('${loginUrl}', '_blank');
+        
+        // Check if the user is logged in before redirecting to OAuth
+        let checkLoginInterval = setInterval(() => {
+            try {
+                // Try to check if the login window is on the admin page
+                if (loginWindow && !loginWindow.closed && loginWindow.location.href.includes('/admin')) {
+                    clearInterval(checkLoginInterval);
+                    
+                    // User is logged in, redirect to the OAuth page
+                    window.location.href = '${installUrl}';
+                    
+                    // Try to close the login window
                     try {
                         loginWindow.close();
                     } catch (e) {
                         console.log('Could not close login window');
                     }
                 }
-            }, 3000);
+            } catch (e) {
+                // If we can't access the location due to cross-origin restrictions,
+                // we'll assume the user is still in the login process
+                console.log('Waiting for login to complete...');
+            }
         }, 1000);
     </script>
 </body>
@@ -467,12 +475,12 @@ app.get('/auth/callback', async (req, res) => {
             <p><strong>API Response:</strong></p>
             <pre style="max-height: 200px; overflow: auto; margin-top: 10px; color: #e0e0e0; font-size: 0.9em;">${JSON.stringify(apiResponse, null, 2)}</pre>
         </div>
-        <a href="https://dashboard.strategyfox.in?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}" class="button">Continue to App</a>
+        <a href="http://localhost:5173?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}" class="button">Continue to App</a>
     </div>
     <script>
         // Automatically redirect after 5 seconds
         setTimeout(() => {
-            window.location.href = "https://dashboard.strategyfox.in?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}";
+            window.location.href = "http://localhost:5173?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}";
         }, 5000);
     </script>
 </body>
