@@ -24,9 +24,6 @@ app.get('/auth', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     res.cookie('state', state, { httpOnly: true, secure: true, sameSite: 'lax' });
 
-    // First, redirect to the login page to ensure the user is logged in
-    const loginUrl = `https://${shop}/admin`;
-
     // Then, redirect to the OAuth authorization URL
     const redirectUri = `${HOST}/auth/callback`;
     const installUrl = `https://${shop}/admin/oauth/authorize` +
@@ -39,185 +36,145 @@ app.get('/auth', (req, res) => {
     if (email) {
         res.cookie('shopify_email', email, { httpOnly: true, secure: true, sameSite: 'lax' });
     }
-    // Create an HTML page that first redirects to login, then to the OAuth page
-    const redirectHtml = `
+
+    // Create an HTML page that shows connecting and redirects to the install URL
+    const connectingHtml = `
     <!DOCTYPE html>
-<html>
-<head>
-    <title>Redirecting to Shopify</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            text-align: center;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        .container {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            width: 90%;
-            max-width: 600px;
-            margin: 0 auto;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-        }
-
-        h1 {
-            color: #ff6b35;
-            font-size: 2.5em;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-
-        p {
-            color: #e0e0e0;
-            font-size: 1.1em;
-            line-height: 1.6;
-            margin: 15px 0;
-        }
-
-        /* Complex Loader Styles */
-        .loader-container {
-            position: relative;
-            width: 120px;
-            height: 120px;
-            margin: 30px auto;
-        }
-
-        .loader {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            border-top-color: #ff6b35;
-            animation: spin 2s linear infinite;
-            box-shadow: 0 0 20px rgba(255, 107, 53, 0.2);
-        }
-
-        .loader::before,
-        .loader::after {
-            content: '';
-            position: absolute;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            border-top-color: #ff6b35;
-            box-shadow: 0 0 20px rgba(255, 107, 53, 0.2);
-        }
-
-        .loader::before {
-            top: 5px;
-            left: 5px;
-            right: 5px;
-            bottom: 5px;
-            animation: spin 3s linear infinite reverse;
-        }
-
-        .loader::after {
-            top: 15px;
-            left: 15px;
-            right: 15px;
-            bottom: 15px;
-            animation: spin 1.5s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .glow {
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(255, 107, 53, 0.2) 0%, rgba(255, 107, 53, 0) 70%);
-            border-radius: 50%;
-            filter: blur(20px);
-            z-index: -1;
-            animation: pulse 3s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 0.5; }
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 480px) {
+    <html>
+    <head>
+        <title>Connecting to Shopify</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                text-align: center;
+                background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+                color: #ffffff;
+            }
+    
             .container {
-                padding: 30px 20px;
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border-radius: 20px;
+                padding: 40px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                width: 90%;
+                max-width: 600px;
+                margin: 0 auto;
+                border: 1px solid rgba(255, 255, 255, 0.1);
             }
-            
+    
             h1 {
-                font-size: 2em;
+                color: #ff6b35;
+                font-size: 2.5em;
+                margin-bottom: 20px;
+                font-weight: 600;
             }
-            
+    
+            p {
+                color: #e0e0e0;
+                font-size: 1.1em;
+                line-height: 1.6;
+                margin: 15px 0;
+            }
+    
             .loader-container {
-                width: 100px;
-                height: 100px;
+                margin: 30px auto;
+                width: 80px;
+                height: 80px;
+                position: relative;
             }
-        }
-    </style>
-</head>
-<body>
-    <div class="glow"></div>
-    <div class="container">
-        <h1>Connecting to Shopify</h1>
-        <p>Please wait while we connect to your Shopify store...</p>
-        <div class="loader-container">
-            <div class="loader"></div>
+    
+            .loader {
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                border: 3px solid transparent;
+                border-top-color: #ff6b35;
+                animation: spin 1s linear infinite;
+                position: relative;
+            }
+    
+            .loader::before, .loader::after {
+                content: '';
+                position: absolute;
+                border-radius: 50%;
+                border: 3px solid transparent;
+            }
+    
+            .loader::before {
+                top: 5px;
+                left: 5px;
+                right: 5px;
+                bottom: 5px;
+                border-top-color: #ff8c53;
+                animation: spin 3s linear infinite reverse;
+            }
+    
+            .loader::after {
+                top: 15px;
+                left: 15px;
+                right: 15px;
+                bottom: 15px;
+                border-top-color: #ffbf90;
+                animation: spin 1.5s linear infinite;
+            }
+    
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+    
+            .glow {
+                position: absolute;
+                width: 300px;
+                height: 300px;
+                background: radial-gradient(circle, rgba(255, 107, 53, 0.2) 0%, rgba(255, 107, 53, 0) 70%);
+                border-radius: 50%;
+                filter: blur(20px);
+                z-index: -1;
+                animation: pulse 3s ease-in-out infinite;
+            }
+    
+            @keyframes pulse {
+                0% { transform: scale(1); opacity: 0.5; }
+                50% { transform: scale(1.2); opacity: 0.8; }
+                100% { transform: scale(1); opacity: 0.5; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="glow"></div>
+        <div class="container">
+            <h1>Connecting to Shopify</h1>
+            <p>Please wait while we connect to your Shopify store...</p>
+            <div class="loader-container">
+                <div class="loader"></div>
+            </div>
+            <p>You'll be redirected to Shopify to authorize this application.</p>
         </div>
-        <p>You'll be redirected to Shopify to authorize this application.</p>
-    </div>
-    <script>
-        // Open admin in a new tab/window to ensure login
-        const loginWindow = window.open('${loginUrl}', '_blank');
-        
-        // Check if the user is logged in before redirecting to OAuth
-        let checkLoginInterval = setInterval(() => {
-            try {
-                // Try to check if the login window is on the admin page
-                if (loginWindow && !loginWindow.closed && loginWindow.location.href.includes('/admin')) {
-                    clearInterval(checkLoginInterval);
-                    
-                    // User is logged in, redirect to the OAuth page
-                    window.location.href = '${installUrl}';
-                    
-                    // Try to close the login window
-                    try {
-                        loginWindow.close();
-                    } catch (e) {
-                        console.log('Could not close login window');
-                    }
-                }
-            } catch (e) {
-                // If we can't access the location due to cross-origin restrictions,
-                // we'll assume the user is still in the login process
-                console.log('Waiting for login to complete...');
-            }
-        }, 1000);
-    </script>
-</body>
-</html>
+        <script>
+            // Redirect to the install URL after a short delay
+            setTimeout(() => {
+                window.location.href = '${installUrl}';
+            }, 2000);
+        </script>
+    </body>
+    </html>
     `;
 
-    return res.send(redirectHtml);
+    return res.send(connectingHtml);
 });
 
 /** 2️⃣ /auth/callback — Shopify comes back here with code & hmac */
@@ -260,6 +217,7 @@ app.get('/auth/callback', async (req, res) => {
             if (email) {
                 formData.append('email', email);
             }
+            formData.append('shop', shop);
 
             const saveTokenResponse = await axios.post(
                 'https://save-shopify-acces-token-201137466588.asia-south1.run.app',
@@ -278,213 +236,215 @@ app.get('/auth/callback', async (req, res) => {
             apiResponse = { error: 'Failed to save access token' };
         }
 
-        // Display success HTML page with API response
+        // Create dashboard URL with parameters
+        const dashboardUrl = `https://dashboard.strategyfox.in?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}`;
+
+        // Display success HTML page
         const successHtml = `
         <!DOCTYPE html>
-<html>
-<head>
-    <title>Authentication Successful</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            text-align: center;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            color: #ffffff;
-        }
-
-        .container {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            width: 90%;
-            max-width: 600px;
-            margin: 0 auto;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            position: relative;
-        }
-
-        h1 {
-            color: #ff6b35;
-            font-size: 2.5em;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-
-        p {
-            color: #e0e0e0;
-            font-size: 1.1em;
-            line-height: 1.6;
-            margin: 15px 0;
-        }
-
-        .success-icon {
-            width: 80px;
-            height: 80px;
-            background: rgba(255, 107, 53, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 30px;
-            position: relative;
-            animation: successPulse 2s ease-in-out infinite;
-        }
-
-        .success-icon::before {
-            content: '✓';
-            color: #ff6b35;
-            font-size: 40px;
-            font-weight: bold;
-        }
-
-        .success-icon::after {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 2px solid #ff6b35;
-            animation: successRing 2s ease-in-out infinite;
-        }
-
-        .token-info {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            word-break: break-all;
-            text-align: left;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .token-info::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, transparent, rgba(255, 107, 53, 0.1), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        .button {
-            background: linear-gradient(45deg, #ff6b35, #ff8c53);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 20px;
-            font-weight: 600;
-            font-size: 1.1em;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
-        }
-
-        .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
-        }
-
-        .glow {
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(255, 107, 53, 0.2) 0%, rgba(255, 107, 53, 0) 70%);
-            border-radius: 50%;
-            filter: blur(20px);
-            z-index: -1;
-            animation: pulse 3s ease-in-out infinite;
-        }
-
-        @keyframes successPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        @keyframes successRing {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.5; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 0.5; }
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 480px) {
-            .container {
-                padding: 30px 20px;
-            }
-            
-            h1 {
-                font-size: 2em;
-            }
-            
-            .success-icon {
-                width: 60px;
-                height: 60px;
-            }
-
-            .success-icon::before {
-                font-size: 30px;
-            }
-
-            .button {
-                padding: 12px 24px;
-                font-size: 1em;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="glow"></div>
-    <div class="container">
-        <div class="success-icon"></div>
-        <h1>Authentication Successful!</h1>
-        <p>Your Shopify store <strong>${shop}</strong> has been successfully connected.</p>
-        <p>The access token has been saved successfully.</p>
-        <div class="token-info">
-            <p><strong>API Response:</strong></p>
-            <pre style="max-height: 200px; overflow: auto; margin-top: 10px; color: #e0e0e0; font-size: 0.9em;">${JSON.stringify(apiResponse, null, 2)}</pre>
-        </div>
-        <a href="http://localhost:5173?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}" class="button">Continue to App</a>
-    </div>
-    <script>
-        // Automatically redirect after 5 seconds
-        setTimeout(() => {
-            window.location.href = "http://localhost:5173?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}";
-        }, 5000);
-    </script>
-</body>
-</html>
+        <html>
+        <head>
+            <title>Authentication Successful</title>
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+        
+                body {
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                    text-align: center;
+                    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                    color: #ffffff;
+                }
+        
+                .container {
+                    background: rgba(255, 255, 255, 0.05);
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    border-radius: 20px;
+                    padding: 40px;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                    width: 90%;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    position: relative;
+                }
+        
+                h1 {
+                    color: #ff6b35;
+                    font-size: 2.5em;
+                    margin-bottom: 20px;
+                    font-weight: 600;
+                }
+        
+                p {
+                    color: #e0e0e0;
+                    font-size: 1.1em;
+                    line-height: 1.6;
+                    margin: 15px 0;
+                }
+        
+                .success-icon {
+                    width: 80px;
+                    height: 80px;
+                    background: rgba(255, 107, 53, 0.1);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 30px;
+                    position: relative;
+                    animation: successPulse 2s ease-in-out infinite;
+                }
+        
+                .success-icon::before {
+                    content: '✓';
+                    color: #ff6b35;
+                    font-size: 40px;
+                    font-weight: bold;
+                }
+        
+                .success-icon::after {
+                    content: '';
+                    position: absolute;
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 50%;
+                    border: 2px solid #ff6b35;
+                    animation: successRing 2s ease-in-out infinite;
+                }
+        
+                .token-info {
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 20px;
+                    border-radius: 10px;
+                    margin: 20px 0;
+                    text-align: left;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    position: relative;
+                    overflow: hidden;
+                }
+        
+                .token-info::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(45deg, transparent, rgba(255, 107, 53, 0.1), transparent);
+                    animation: shimmer 2s infinite;
+                }
+        
+                .button {
+                    background: linear-gradient(45deg, #ff6b35, #ff8c53);
+                    color: white;
+                    border: none;
+                    padding: 15px 30px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    text-decoration: none;
+                    display: inline-block;
+                    margin-top: 20px;
+                    font-weight: 600;
+                    font-size: 1.1em;
+                    transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+                }
+        
+                .button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+                }
+        
+                .glow {
+                    position: absolute;
+                    width: 300px;
+                    height: 300px;
+                    background: radial-gradient(circle, rgba(255, 107, 53, 0.2) 0%, rgba(255, 107, 53, 0) 70%);
+                    border-radius: 50%;
+                    filter: blur(20px);
+                    z-index: -1;
+                    animation: pulse 3s ease-in-out infinite;
+                }
+        
+                @keyframes successPulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                }
+        
+                @keyframes successRing {
+                    0% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.2); opacity: 0.5; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+        
+                @keyframes shimmer {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
+                }
+        
+                @keyframes pulse {
+                    0% { transform: scale(1); opacity: 0.5; }
+                    50% { transform: scale(1.2); opacity: 0.8; }
+                    100% { transform: scale(1); opacity: 0.5; }
+                }
+        
+                /* Responsive adjustments */
+                @media (max-width: 480px) {
+                    .container {
+                        padding: 30px 20px;
+                    }
+                    
+                    h1 {
+                        font-size: 2em;
+                    }
+                    
+                    .success-icon {
+                        width: 60px;
+                        height: 60px;
+                    }
+        
+                    .success-icon::before {
+                        font-size: 30px;
+                    }
+        
+                    .button {
+                        padding: 12px 24px;
+                        font-size: 1em;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="glow"></div>
+            <div class="container">
+                <div class="success-icon"></div>
+                <h1>Authentication Successful!</h1>
+                <p>Your Shopify store <strong>${shop}</strong> has been successfully connected.</p>
+                <p>The access token has been saved successfully.</p>
+                <div class="token-info">
+                    <p><strong>API Response:</strong></p>
+                    <pre style="max-height: 200px; overflow: auto; margin-top: 10px; color: #e0e0e0; font-size: 0.9em;">${JSON.stringify(apiResponse, null, 2)}</pre>
+                </div>
+                <a href="${dashboardUrl}" class="button">Continue to Dashboard</a>
+            </div>
+            <script>
+                // Automatically redirect after 5 seconds
+                setTimeout(() => {
+                    window.location.href = "${dashboardUrl}";
+                }, 5000);
+            </script>
+        </body>
+        </html>
         `;
 
         return res.send(successHtml);
