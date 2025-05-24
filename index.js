@@ -167,7 +167,7 @@ app.get('/auth', (req, res) => {
         <script>
             // Redirect to the install URL after a short delay
             setTimeout(() => {
-                window.location.href = '${installUrl}';
+                window.open('${installUrl}', '_blank', 'noopener,noreferrer');
             }, 2000);
         </script>
     </body>
@@ -183,7 +183,6 @@ app.get('/auth/callback', async (req, res) => {
 
     const { shop, hmac, code, state } = req.query;
     const email = req.cookies.shopify_email;
-    console.log("Email from cookie:", email);
 
     const stateCookie = req.cookies.state;
     if (state !== stateCookie) return res.status(403).send('Invalid state');
@@ -435,14 +434,8 @@ app.get('/auth/callback', async (req, res) => {
                     <p><strong>API Response:</strong></p>
                     <pre style="max-height: 200px; overflow: auto; margin-top: 10px; color: #e0e0e0; font-size: 0.9em;">${JSON.stringify(apiResponse, null, 2)}</pre>
                 </div>
-                <a href="${dashboardUrl}" class="button">Continue to Dashboard</a>
+                <a href="${dashboardUrl}" target="_blank" rel="noopener noreferrer" class="button">Continue to Dashboard</a>
             </div>
-            <script>
-                // Automatically redirect after 5 seconds
-                setTimeout(() => {
-                    window.location.href = "${dashboardUrl}";
-                }, 5000);
-            </script>
         </body>
         </html>
         `;
