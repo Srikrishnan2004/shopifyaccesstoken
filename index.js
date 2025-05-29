@@ -1,4 +1,3 @@
-// server/index.js
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import crypto from 'crypto';
@@ -6,6 +5,7 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import FormData from 'form-data';
+import { WebSocketServer } from 'ws';
 
 dotenv.config();
 
@@ -14,18 +14,30 @@ const app = express();
 app.use(cors());
 app.use(cookieParser());
 
-/** 1️⃣ /auth — redirect merchant to Shopify */
-app.get('/auth', (req, res) => {
-    console.log("Entering into the auth route.");
+const clients = new Map();
 
+const wss = new WebSocketServer({ noServer: true });
+wss.on('connection', (ws, request) => {
+    const params = new URLSearchParams(request.url.substring(1));
+    const shop = params.get('shop');
+    if (shop) {
+        console.log(`WebSocket connected for shop: ${shop}`);
+        clients.set(shop, ws);
+        ws.on('close', () => {
+            console.log(`WebSocket closed for shop: ${shop}`);
+            clients.delete(shop);
+        });
+    }
+});
+
+/** /auth – connect and send connectingHtml with WebSocket & CSS */
+app.get('/auth', (req, res) => {
     const { shop, email } = req.query;
     if (!shop) return res.status(400).send('Missing shop parameter');
 
-    // generate a nonce for CSRF protection
     const state = crypto.randomBytes(16).toString('hex');
     res.cookie('state', state, { httpOnly: true, secure: true, sameSite: 'lax' });
 
-    // Then, redirect to the OAuth authorization URL
     const redirectUri = `${HOST}/auth/callback`;
     const installUrl = `https://${shop}/admin/oauth/authorize` +
         `?client_id=${SHOPIFY_API_KEY}` +
@@ -33,24 +45,22 @@ app.get('/auth', (req, res) => {
         `&state=${state}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
-    // Store email in a cookie instead of trying to pass it in the redirect URI
     if (email) {
         res.cookie('shopify_email', email, { httpOnly: true, secure: true, sameSite: 'lax' });
     }
 
-    // Create an HTML page that shows connecting and redirects to the install URL
     const connectingHtml = `
     <!DOCTYPE html>
     <html>
     <head>
         <title>Connecting to Shopify</title>
         <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
+            * { 
+                margin: 0; 
+                padding: 0; 
+                box-sizing: 
+                border-box; 
             }
-            
             body {
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
                 text-align: center;
@@ -62,7 +72,6 @@ app.get('/auth', (req, res) => {
                 overflow: hidden;
                 color: #ffffff;
             }
-    
             .container {
                 background: rgba(255, 255, 255, 0.05);
                 backdrop-filter: blur(10px);
@@ -70,393 +79,163 @@ app.get('/auth', (req, res) => {
                 border-radius: 20px;
                 padding: 40px;
                 box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-                width: 90%;
-                max-width: 600px;
+                width: 90%; max-width: 600px;
                 margin: 0 auto;
                 border: 1px solid rgba(255, 255, 255, 0.1);
             }
-    
-            h1 {
-                color: #ff6b35;
-                font-size: 2.5em;
-                margin-bottom: 20px;
-                font-weight: 600;
+            h1 { 
+                color: #ff6b35; 
+                font-size: 2.5em; 
+                margin-bottom: 20px; 
+                font-weight: 600; 
             }
-    
-            p {
-                color: #e0e0e0;
-                font-size: 1.1em;
-                line-height: 1.6;
-                margin: 15px 0;
+            p { 
+                color: #e0e0e0; 
+                font-size: 1.1em; 
+                line-height: 1.6; 
+                margin: 15px 0; 
             }
-    
-            .loader-container {
-                margin: 30px auto;
-                width: 80px;
-                height: 80px;
-                position: relative;
+            .loader-container { 
+                margin: 30px auto; 
+                width: 80px; 
+                height: 80px; 
+                position: relative; 
             }
-    
             .loader {
-                width: 100%;
-                height: 100%;
-                border-radius: 50%;
+                width: 100%; 
+                height: 100%; 
+                border-radius: 50%; 
                 border: 3px solid transparent;
-                border-top-color: #ff6b35;
-                animation: spin 1s linear infinite;
+                border-top-color: #ff6b35; 
+                animation: spin 1s linear infinite; 
                 position: relative;
             }
-    
             .loader::before, .loader::after {
-                content: '';
-                position: absolute;
-                border-radius: 50%;
+                content: ''; 
+                position: absolute; 
+                border-radius: 50%; 
                 border: 3px solid transparent;
             }
-    
             .loader::before {
-                top: 5px;
-                left: 5px;
-                right: 5px;
-                bottom: 5px;
+                top: 5px; 
+                left: 5px; 
+                right: 5px; 
+                bottom: 5px; 
                 border-top-color: #ff8c53;
                 animation: spin 3s linear infinite reverse;
             }
-    
             .loader::after {
-                top: 15px;
-                left: 15px;
-                right: 15px;
-                bottom: 15px;
+                top: 15px; 
+                left: 15px; 
+                right: 15px; 
+                bottom: 15px; 
                 border-top-color: #ffbf90;
                 animation: spin 1.5s linear infinite;
             }
-    
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-    
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
             .glow {
-                position: absolute;
-                width: 300px;
+                position: absolute; 
+                width: 300px; 
                 height: 300px;
                 background: radial-gradient(circle, rgba(255, 107, 53, 0.2) 0%, rgba(255, 107, 53, 0) 70%);
-                border-radius: 50%;
-                filter: blur(20px);
-                z-index: -1;
+                border-radius: 50%; 
+                filter: blur(20px); 
+                z-index: -1; 
                 animation: pulse 3s ease-in-out infinite;
             }
-    
-            @keyframes pulse {
-                0% { transform: scale(1); opacity: 0.5; }
-                50% { transform: scale(1.2); opacity: 0.8; }
-                100% { transform: scale(1); opacity: 0.5; }
+            @keyframes pulse { 
+                0% { 
+                    transform: scale(1); 
+                    opacity: 0.5; 
+                } 50% { 
+                    transform: scale(1.2);
+                    opacity: 0.8; 
+                } 100% {
+                    transform: scale(1); 
+                    opacity: 0.5; 
+                } 
             }
         </style>
     </head>
     <body>
         <div class="glow"></div>
         <div class="container">
-            <h1>Connecting to Shopify</h1>
-            <p>Please wait while we connect to your Shopify store...</p>
-            <div class="loader-container">
-                <div class="loader"></div>
-            </div>
+            <h1 id="status">Connecting to Shopify Store...</h1>
+            <p id="detail">Please wait while we connect to your Shopify store...</p>
+            <div class="loader-container"><div class="loader"></div></div>
             <p>You'll be redirected to Shopify to authorize this application.</p>
         </div>
         <script>
-            // Redirect to the install URL after a short delay
-            setTimeout(() => {
-                window.open('${installUrl}', '_blank', 'noopener,noreferrer');
-            }, 2000);
+            const shop = "${shop}";
+            const ws = new WebSocket("ws://" + window.location.host + "/?shop=" + encodeURIComponent(shop));
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.status === 'connected') {
+                    document.getElementById('status').textContent = "Connected to Shopify Store!";
+                    document.getElementById('detail').textContent = "Your store has been successfully connected.";
+                    document.querySelector(".loader-container").innerHTML = "✅";
+                }
+            };
+            ws.onclose = () => console.log("WebSocket closed");
+            setTimeout(() => { window.location.href = '${installUrl}'; }, 2000);
         </script>
     </body>
     </html>
     `;
-
     return res.send(connectingHtml);
 });
 
-/** 2️⃣ /auth/callback — Shopify comes back here with code & hmac */
+/** /auth/callback – notify WebSocket client */
 app.get('/auth/callback', async (req, res) => {
-    console.log("Entering into the auth/callback route.");
-
     const { shop, hmac, code, state } = req.query;
     const email = req.cookies.shopify_email;
-
     const stateCookie = req.cookies.state;
     if (state !== stateCookie) return res.status(403).send('Invalid state');
 
-    // validate the request is from Shopify
     const map = { ...req.query };
     delete map.hmac; delete map.signature;
-    const message = Object.keys(map).sort()
-        .map((key) => `${key}=${map[key]}`)
-        .join('&');
-    const generatedHash = crypto
-        .createHmac('sha256', SHOPIFY_API_SECRET)
-        .update(message)
-        .digest('hex');
+    const message = Object.keys(map).sort().map(key => `${key}=${map[key]}`).join('&');
+    const generatedHash = crypto.createHmac('sha256', SHOPIFY_API_SECRET).update(message).digest('hex');
     if (generatedHash !== hmac) return res.status(400).send('HMAC mismatch');
 
-    // exchange temporary code for a permanent access token
     try {
         const tokenResponse = await axios.post(`https://${shop}/admin/oauth/access_token`, {
-            client_id: SHOPIFY_API_KEY,
-            client_secret: SHOPIFY_API_SECRET,
-            code
+            client_id: SHOPIFY_API_KEY, client_secret: SHOPIFY_API_SECRET, code
         });
         const accessToken = tokenResponse.data.access_token;
 
-        // Clear the state and email cookies after successful authentication
-        res.clearCookie('state');
-        res.clearCookie('shopify_email');
-        
-        // Create form data and call the API to save the access token
+        const client = clients.get(shop);
+        if (client && client.readyState === 1) {
+            client.send(JSON.stringify({ status: 'connected', shop }));
+        }
+
+        res.clearCookie('state'); res.clearCookie('shopify_email');
+
+        const formData = new FormData();
+        formData.append('shopifyAccessToken', accessToken);
+        if (email) formData.append('email', email);
+        formData.append('shop', shop);
+
         let apiResponse = {};
         try {
-            const formData = new FormData();
-            console.log(accessToken);
-            formData.append('shopifyAccessToken', accessToken);
-            if (email) {
-                formData.append('email', email);
-            }
-            formData.append('shop', shop);
-
             const saveTokenResponse = await axios.post(
                 'https://save-shopify-acces-token-201137466588.asia-south1.run.app',
-                formData,
-                {
-                    headers: formData.getHeaders() // This sets the correct Content-Type
-                }
+                formData, { headers: formData.getHeaders() }
             );
-
             apiResponse = saveTokenResponse.data;
-            console.log('API Response:', apiResponse);
         } catch (apiError) {
             console.error('API call error:', apiError);
             apiResponse = { error: 'Failed to save access token' };
         }
 
-        // Create dashboard URL with parameters
         const dashboardUrl = `https://dashboard.strategyfox.in?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}`;
 
-        // Display success HTML page
-        const successHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Authentication Successful</title>
-            <style>
-                * {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
-        
-                body {
-                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-                    text-align: center;
-                    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-                    min-height: 100vh;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    overflow: hidden;
-                    color: #ffffff;
-                }
-        
-                .container {
-                    background: rgba(255, 255, 255, 0.05);
-                    backdrop-filter: blur(10px);
-                    -webkit-backdrop-filter: blur(10px);
-                    border-radius: 20px;
-                    padding: 40px;
-                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-                    width: 90%;
-                    max-width: 600px;
-                    margin: 0 auto;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    position: relative;
-                }
-        
-                h1 {
-                    color: #ff6b35;
-                    font-size: 2.5em;
-                    margin-bottom: 20px;
-                    font-weight: 600;
-                }
-        
-                p {
-                    color: #e0e0e0;
-                    font-size: 1.1em;
-                    line-height: 1.6;
-                    margin: 15px 0;
-                }
-        
-                .success-icon {
-                    width: 80px;
-                    height: 80px;
-                    background: rgba(255, 107, 53, 0.1);
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin: 0 auto 30px;
-                    position: relative;
-                    animation: successPulse 2s ease-in-out infinite;
-                }
-        
-                .success-icon::before {
-                    content: '✓';
-                    color: #ff6b35;
-                    font-size: 40px;
-                    font-weight: bold;
-                }
-        
-                .success-icon::after {
-                    content: '';
-                    position: absolute;
-                    width: 100%;
-                    height: 100%;
-                    border-radius: 50%;
-                    border: 2px solid #ff6b35;
-                    animation: successRing 2s ease-in-out infinite;
-                }
-        
-                .token-info {
-                    background: rgba(255, 255, 255, 0.05);
-                    padding: 20px;
-                    border-radius: 10px;
-                    margin: 20px 0;
-                    text-align: left;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    position: relative;
-                    overflow: hidden;
-                }
-        
-                .token-info::before {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: linear-gradient(45deg, transparent, rgba(255, 107, 53, 0.1), transparent);
-                    animation: shimmer 2s infinite;
-                }
-        
-                .button {
-                    background: linear-gradient(45deg, #ff6b35, #ff8c53);
-                    color: white;
-                    border: none;
-                    padding: 15px 30px;
-                    border-radius: 10px;
-                    cursor: pointer;
-                    text-decoration: none;
-                    display: inline-block;
-                    margin-top: 20px;
-                    font-weight: 600;
-                    font-size: 1.1em;
-                    transition: transform 0.3s ease, box-shadow 0.3s ease;
-                    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
-                }
-        
-                .button:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
-                }
-        
-                .glow {
-                    position: absolute;
-                    width: 300px;
-                    height: 300px;
-                    background: radial-gradient(circle, rgba(255, 107, 53, 0.2) 0%, rgba(255, 107, 53, 0) 70%);
-                    border-radius: 50%;
-                    filter: blur(20px);
-                    z-index: -1;
-                    animation: pulse 3s ease-in-out infinite;
-                }
-        
-                @keyframes successPulse {
-                    0%, 100% { transform: scale(1); }
-                    50% { transform: scale(1.05); }
-                }
-        
-                @keyframes successRing {
-                    0% { transform: scale(1); opacity: 1; }
-                    50% { transform: scale(1.2); opacity: 0.5; }
-                    100% { transform: scale(1); opacity: 1; }
-                }
-        
-                @keyframes shimmer {
-                    0% { transform: translateX(-100%); }
-                    100% { transform: translateX(100%); }
-                }
-        
-                @keyframes pulse {
-                    0% { transform: scale(1); opacity: 0.5; }
-                    50% { transform: scale(1.2); opacity: 0.8; }
-                    100% { transform: scale(1); opacity: 0.5; }
-                }
-        
-                /* Responsive adjustments */
-                @media (max-width: 480px) {
-                    .container {
-                        padding: 30px 20px;
-                    }
-                    
-                    h1 {
-                        font-size: 2em;
-                    }
-                    
-                    .success-icon {
-                        width: 60px;
-                        height: 60px;
-                    }
-        
-                    .success-icon::before {
-                        font-size: 30px;
-                    }
-        
-                    .button {
-                        padding: 12px 24px;
-                        font-size: 1em;
-                    }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="glow"></div>
-            <div class="container">
-                <div class="success-icon"></div>
-                <h1>Authentication Successful!</h1>
-                <p>Your Shopify store <strong>${shop}</strong> has been successfully connected.</p>
-                <p>The access token has been saved successfully.</p>
-                <div class="token-info">
-                    <p><strong>API Response:</strong></p>
-                    <pre style="max-height: 200px; overflow: auto; margin-top: 10px; color: #e0e0e0; font-size: 0.9em;">${JSON.stringify(apiResponse, null, 2)}</pre>
-                </div>
-                <a href="${dashboardUrl}" target="_blank" rel="noopener noreferrer" class="button">Continue to Dashboard</a>
-            </div>
-        </body>
-        </html>
-        `;
-
-        return res.send(successHtml);
+        return res.send(`<h1>Authentication Successful</h1><p>Your store ${shop} is connected.</p><a href="${dashboardUrl}">Go to Dashboard</a>`);
     } catch (err) {
-        console.error('OAuth error details:', {
-            message: err.message,
-            response: err.response?.data,
-            status: err.response?.status,
-            shop: shop,
-            code: code?.substring(0, 10) + '...' // Log partial code for debugging
-        });
+        console.error('OAuth error:', err.message);
         return res.status(500).send('Failed to get access token: ' + err.message);
     }
 });
 
-app.listen(process.env.PORT || 3000, () => {
-    console.log('🚀 Server listening');
-});
+const server = app.listen(process.env.PORT || 3000, () => console.log('🚀 Server listening'));
+server.on('upgrade', (req, socket, head) => wss.handleUpgrade(req, socket, head, ws => wss.emit('connection', ws, req)));
