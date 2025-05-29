@@ -32,6 +32,7 @@ wss.on('connection', (ws, request) => {
 
 /** /auth – connect and send connectingHtml with WebSocket & CSS */
 app.get('/auth', (req, res) => {
+    console.log('auth called');
     const { shop, email } = req.query;
     if (!shop) return res.status(400).send('Missing shop parameter');
 
@@ -187,6 +188,7 @@ app.get('/auth', (req, res) => {
 
 /** /auth/callback – notify WebSocket client */
 app.get('/auth/callback', async (req, res) => {
+    console.log('auth/callback called');
     const { shop, hmac, code, state } = req.query;
     const email = req.cookies.shopify_email;
     const stateCookie = req.cookies.state;
