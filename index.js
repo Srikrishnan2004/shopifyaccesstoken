@@ -212,6 +212,7 @@ app.get('/auth/callback', async (req, res) => {
         let apiResponse = {};
         try {
             const formData = new FormData();
+            console.log(accessToken);
             formData.append('shopifyAccessToken', accessToken);
             if (email) {
                 formData.append('email', email);
