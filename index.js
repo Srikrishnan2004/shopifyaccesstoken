@@ -208,6 +208,10 @@ app.get('/auth/callback', async (req, res) => {
         });
         const accessToken = tokenResponse.data.access_token;
 
+        // Clear the state and email cookies after successful authentication
+        res.clearCookie('state');
+        res.clearCookie('shopify_email');
+        
         // Create form data and call the API to save the access token
         let apiResponse = {};
         try {
