@@ -168,7 +168,8 @@ app.get('/auth', (req, res) => {
         </div>
         <script>
             const shop = "${shop}";
-            const ws = new WebSocket("ws://" + window.location.host + "/?shop=" + encodeURIComponent(shop));
+            const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            const ws = new WebSocket(wsProtocol + "//" + window.location.host + "/?shop=" + encodeURIComponent(shop));
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.status === 'connected') {
