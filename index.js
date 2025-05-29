@@ -236,7 +236,230 @@ app.get('/auth/callback', async (req, res) => {
 
         const dashboardUrl = `https://dashboard.strategyfox.in?shop=${encodeURIComponent(shop)}&accessToken=${encodeURIComponent(accessToken)}${email ? `&email=${encodeURIComponent(email)}` : ''}`;
 
-        return res.send(`<h1>Authentication Successful</h1><p>Your store ${shop} is connected.</p><a href="${dashboardUrl}">Go to Dashboard</a>`);
+        return res.send(`<!DOCTYPE html>
+        <html>
+        <head>
+            <title>Authentication Successful</title>
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+        
+                body {
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                    text-align: center;
+                    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                    color: #ffffff;
+                }
+        
+                .container {
+                    background: rgba(255, 255, 255, 0.05);
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    border-radius: 20px;
+                    padding: 40px;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                    width: 90%;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    position: relative;
+                }
+        
+                h1 {
+                    color: #ff6b35;
+                    font-size: 2.5em;
+                    margin-bottom: 20px;
+                    font-weight: 600;
+                }
+        
+                p {
+                    color: #e0e0e0;
+                    font-size: 1.1em;
+                    line-height: 1.6;
+                    margin: 15px 0;
+                }
+        
+                .success-icon {
+                    width: 80px;
+                    height: 80px;
+                    background: rgba(255, 107, 53, 0.1);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 30px;
+                    position: relative;
+                    animation: successPulse 2s ease-in-out infinite;
+                }
+        
+                .success-icon::before {
+                    content: '✓';
+                    font-size: 40px;
+                    color: #ff6b35;
+                    animation: checkmark 0.8s ease-in-out forwards;
+                }
+        
+                @keyframes checkmark {
+                    0% {
+                        transform: scale(0);
+                        opacity: 0;
+                    }
+                    50% {
+                        transform: scale(1.2);
+                    }
+                    100% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+        
+                @keyframes successPulse {
+                    0% {
+                        box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.4);
+                    }
+                    70% {
+                        box-shadow: 0 0 0 20px rgba(255, 107, 53, 0);
+                    }
+                    100% {
+                        box-shadow: 0 0 0 0 rgba(255, 107, 53, 0);
+                    }
+                }
+        
+                .success-icon::after {
+                    content: '';
+                    position: absolute;
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 50%;
+                    border: 2px solid #ff6b35;
+                    animation: successRing 2s ease-in-out infinite;
+                }
+        
+                .token-info {
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 20px;
+                    border-radius: 10px;
+                    margin: 20px 0;
+                    text-align: left;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    position: relative;
+                    overflow: hidden;
+                }
+        
+                .token-info::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(45deg, transparent, rgba(255, 107, 53, 0.1), transparent);
+                    animation: shimmer 2s infinite;
+                }
+        
+                .button {
+                    background: linear-gradient(45deg, #ff6b35, #ff8c53);
+                    color: white;
+                    border: none;
+                    padding: 15px 30px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    text-decoration: none;
+                    display: inline-block;
+                    margin-top: 20px;
+                    font-weight: 600;
+                    font-size: 1.1em;
+                    transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+                }
+        
+                .button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+                }
+        
+                .glow {
+                    position: absolute;
+                    width: 300px;
+                    height: 300px;
+                    background: radial-gradient(circle, rgba(255, 107, 53, 0.2) 0%, rgba(255, 107, 53, 0) 70%);
+                    border-radius: 50%;
+                    filter: blur(20px);
+                    z-index: -1;
+                    animation: pulse 3s ease-in-out infinite;
+                }
+        
+                @keyframes successPulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                }
+        
+                @keyframes successRing {
+                    0% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.2); opacity: 0.5; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+        
+                @keyframes shimmer {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
+                }
+        
+                @keyframes pulse {
+                    0% { transform: scale(1); opacity: 0.5; }
+                    50% { transform: scale(1.2); opacity: 0.8; }
+                    100% { transform: scale(1); opacity: 0.5; }
+                }
+        
+                /* Responsive adjustments */
+                @media (max-width: 480px) {
+                    .container {
+                        padding: 30px 20px;
+                    }
+                    
+                    h1 {
+                        font-size: 2em;
+                    }
+                    
+                    .success-icon {
+                        width: 60px;
+                        height: 60px;
+                    }
+        
+                    .success-icon::before {
+                        font-size: 30px;
+                    }
+        
+                    .button {
+                        padding: 12px 24px;
+                        font-size: 1em;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="glow"></div>
+            <div class="container">
+                <div class="success-icon"></div>
+                <h1>Authentication Successful!</h1>
+                <p>Your Shopify store <strong>${shop}</strong> has been successfully connected.</p>
+                <p>The access token has been saved successfully.</p>
+                <div class="token-info">
+                    <p><strong>API Response:</strong></p>
+                    <pre style="max-height: 200px; overflow: auto; margin-top: 10px; color: #e0e0e0; font-size: 0.9em;">${JSON.stringify(apiResponse, null, 2)}</pre>
+                </div>
+                <a href="${dashboardUrl}" target="_blank" rel="noopener noreferrer" class="button">Continue to Dashboard</a>
+            </div>
+        </body>
+        </html>`);
     } catch (err) {
         console.error('OAuth error:', err.message);
         return res.status(500).send('Failed to get access token: ' + err.message);
