@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import FormData from 'form-data';
 
 dotenv.config();
 
@@ -227,9 +228,7 @@ app.get('/auth/callback', async (req, res) => {
                 'https://save-shopify-acces-token-201137466588.asia-south1.run.app',
                 formData,
                 {
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    }
+                    headers: formData.getHeaders() // This sets the correct Content-Type
                 }
             );
 
@@ -447,8 +446,14 @@ app.get('/auth/callback', async (req, res) => {
 
         return res.send(successHtml);
     } catch (err) {
-        console.error(err);
-        return res.status(500).send('Failed to get access token');
+        console.error('OAuth error details:', {
+            message: err.message,
+            response: err.response?.data,
+            status: err.response?.status,
+            shop: shop,
+            code: code?.substring(0, 10) + '...' // Log partial code for debugging
+        });
+        return res.status(500).send('Failed to get access token: ' + err.message);
     }
 });
 
