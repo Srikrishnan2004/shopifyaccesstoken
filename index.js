@@ -178,7 +178,10 @@ app.get('/auth', (req, res) => {
                 }
             };
             ws.onclose = () => console.log("WebSocket closed");
-            setTimeout(() => { window.location.href = '${installUrl}'; }, 2000);
+            // Redirect to the install URL after a short delay
+            setTimeout(() => {
+                window.open('${installUrl}', '_blank', 'noopener,noreferrer');
+            }, 2000);        
         </script>
     </body>
     </html>
