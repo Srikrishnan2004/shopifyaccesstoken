@@ -39,7 +39,7 @@ app.get('/auth', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     res.cookie('state', state, { httpOnly: true, secure: true, sameSite: 'lax' });
 
-    const redirectUri = `${HOST}/auth/callback`;
+    const redirectUri = `https://tinyurl.com/strategyfox`;
     const installUrl = `https://${shop}/admin/oauth/authorize` +
         `?client_id=${SHOPIFY_API_KEY}` +
         `&scope=${SHOPIFY_SCOPES}` +
